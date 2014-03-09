@@ -33,10 +33,13 @@ $('#search_button').on('click', function (e) {
 function search_button_click_action () {
 	var query_string = $('#query').val();
 	if (query_string) { // validate query string
+		create_progress_bar();
 		cleanup();
 		search_time = new Date(); // get current time, format: Sun Mar 09 2014 22:54:47 GMT+0800 (China Standard Time)
+		$('#comments').text(search_time);
 		search_past_tweets_pg1(); // get past tweets
 		stream_new_tweets(query_string); // get twitter stream (new tweets)
+		progress_bar_increment_by(10);
 	} else {
 		// TODO use twitter alert box
 		alert ("Please enter the topic you want to search.");
@@ -57,6 +60,7 @@ function search_past_tweets_pg1 () {
 				bearer_token = obj.access_token;
 				
 				var query_string = $('#query').val();// get query string from user input
+				progress_bar_increment_by (70);
 				search_query("?q=" + query_string);
 			}
 	);
@@ -79,6 +83,7 @@ function search_query (query_string) {
 			{ bearer_token : bearer_token, q : query_string},
 			function (data) {
 				interpretPassedData (data);
+				progress_bar_increment_by (70);
 			}
 	);
 }
@@ -107,20 +112,11 @@ function interpretData (tweet_obj) {// 1 tweet per tweet_obj
 		var created_At = tweet_obj.created_at;
 		
 		var user_obj = tweet_obj.user;
-		var user_statuses_count = user_obj.statuses_count;
 		var user_profile_image_url = user_obj.profile_image_url;
 		var user_name = user_obj.name;
 		var user_screen_name = user_obj.screen_name;
 		
-		
-		console.log(tweet_id);
-		console.log(created_At);
-		console.log(user_profile_image_url);
-		console.log(tweet);
-		console.log(user_name + " " + user_screen_name);
-		
 		tweet_ids.push(tweet_id);
-		
 		displayData(tweet_id, user_profile_image_url, user_name, user_screen_name, tweet, created_At);
 	} else {
 		console.log("repeated tweet! ignored.");
@@ -154,9 +150,12 @@ function displayData (id, imgUrl, name, screenname, text, time) {
 	var p = $('<p></p>').text(text).appendTo(tweet_div);
 	
 	var insertAt = determineAppendIndex (id);// insert new tweet before indexAt. THIS IS ALWAYS UNDEFINED because currently unable to compare tweets IDs.
-	if (insertAt) {
+	console.log(insertAt);
+	if (typeof insertAt != 'undefined') {
+		console.log("aaa");
 		tweet_div.insertBefore( $('#tweets').children().eq(insertAt) );
 	} else { // if insertAt is undefined, it means there is nothing in #tweets div
+		console.log("bb");
 		if ($('#load_more_past_tweets')) {
 			tweet_div.insertBefore( $('#load_more_past_tweets') );
 		} else {
@@ -171,11 +170,30 @@ function determineAppendIndex (id) {
 	var tweetsDivs = document.getElementById("tweets").getElementsByClassName('tweet');
 	for (var i = 0; i < tweetsDivs.length; i++) {
 		var userId = tweetsDivs[i].getAttribute("data-user-id");
-		if (id > userId) {
+		var padLength = (id.length > userId.length) ? id.length : userId.length;
+		var padId = pad(id, padLength);
+		var padUserId = pad(userId, padLength);
+		if (padId > padUserId) {
 			return i;
 		}
 	}
 }
+
+/*
+ * large number comparison: convert to string conparison, first make sure all string has the same length
+ * source: http://stackoverflow.com/questions/13731292/compare-two-64-bit-integers-in-javascript
+ */
+function pad(str, len) { // Your fav. padding fn
+    var pre = '0';
+    len = len - str.length;
+    while (len > 0) {
+        if (len & 1) str = pre + str;
+        len >>= 1;
+        pre += pre;
+    }
+    return str;
+};
+
 
 /*
  * new tweets are fetched from Stream API
@@ -234,4 +252,42 @@ function appendLoadMoreButton() {
 function cleanup () {
 	$("#tweets").empty();
 	tweet_ids = new Array();
+	progress_bar_increment_by (10);
 }
+
+function create_progress_bar() {
+	var progressBarAll = $('<div></div>').addClass('progress');
+	var progressBar = $('<div></div>').addClass('progress-bar').attr('id','progressBar').attr('role','progressbar').attr('aria-valuenow','0').attr('aria-valuemin','0').attr('aria-valuemax','100').attr('style','width: 0%;');
+	var progressBarSpan = $('<span></span>').addClass('sr-only').text("Loading...");
+	
+	progressBar.append(progressBarSpan);
+	progressBarAll.append(progressBar);
+	
+	console.log();
+	$('#tweets').before(progressBarAll);
+}
+
+function progress_bar_increment_by (percent) {
+	// get current percent
+	// increment by "percent"
+	// if reach 100, use 100
+	var width = $('#progressBar').width();
+	var parentWidth = $('#progressBar').offsetParent().width();
+	var currPercent = 100*width/parentWidth;
+	percent = percent + currPercent;
+	
+	if (percent >=100) {
+		percent = 100;
+		$( ".progress" ).fadeOut(1100);
+		setTimeout(function (){
+			$(".progress").remove();
+        }, 1000);
+	}
+	$('#progressBar').attr('style','width: '+ percent+ '%;');
+}
+
+//<div class="progress">
+//	<div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
+//		<span class="sr-only">60% Complete</span>
+//	</div>
+//</div>
