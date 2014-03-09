@@ -39,11 +39,11 @@ app.get('/', function(request, response) {
 	response.sendfile(__dirname+'/index.html');
 });
 
-app.post('/search', function(request, response) {
-	t.search(request.body['search'], {},function(error, data){
-		response.send(data);
-	});
-});
+//app.post('/search', function(request, response) {
+//	t.search(request.body['search'], {},function(error, data){
+//		response.send(data);
+//	});
+//});
 
 
 app.get('/twitter_login2', function(request, response){
@@ -107,6 +107,7 @@ app.get('/twitter_login3', function(request, response){
 	req.end();
 });
 
+// user twitter stream api.
 app.get('/search', function(request, response){
 	var query_string = request.param('query_string');
 	console.log("query_string = " + query_string);

@@ -20,58 +20,49 @@
 				<span class="navbar-brand">实时新闻墙</span>
 			</div>
 			<div class="collapse navbar-collapse">
-				<form class="navbar-form navbar-left" role="search">
-					<div class="form-group">
-						<input type="text" class="form-control" id="user_query" placeholder="搜索新闻话题 例：昆明"><!-- type here is HTML5 types -->
-						<!-- input validation: http://getbootstrap.com/css/#forms-control-validation -->
-						<button class="btn btn-default" type="submit" id="search_button">Go!</button>
-					</div><!-- /input-group -->
-				</form>
+				<div class="col-sm-6 col-md-6">
+					<form class="navbar-form" role="search">
+						<div class="input-group">
+							<input type="text" class="form-control" placeholder="Search for..." name="q" id="query">
+							<div class="input-group-btn">
+								<button class="btn btn-default" type="button" id="search_button"><i class="glyphicon glyphicon-search"></i></button>
+							</div>
+						</div>
+					</form>
+				</div>
 			</div>
+			
 		</div>
-		
 	</nav>
 	
-	<div class="container">
-		<div class="row">
-			<div class="col-lg-6">
-				<div>
-					<div>
-						<img src="/files/test80.png" alt="Smiley face" height="48" width="48">
-					</div>
-					
-					<div>Donglin Pu @Dongminator
-					</div>
+	<div class="container" id="content">
+		<div class="row"><!-- include tweet div and comment div -->
+			<div class="col-md-8 col-lg-8">
+				<div id="tweets" class="verticalLine">
 				
-					<div>Tweets
+					<!-- template -->
+					<div class="tweet" id="4000000">
+						<div class="user_name">
+							<a href="">
+								<img class="profile_photo" src="/files/test80.png" alt="Profile Photo" height="48" width="48"><!-- 48px is the image size returned by twitter stream api -->
+								<strong>Name</strong>
+								<span>@screenname</span>
+							</a>
+						</div>
+						<p>RT @_ManUtd_Indo: 2) #RETWEET tweet ini sebagai bukti kamu sudah mengikuti kuis TEBAK SKOR MANCHESTER UNITED V OLYMPIACOS #QTSMGSJersey </p>
 					</div>
-					
-					<div>100
-					</div>
-					
-					<div>Following
-					</div>
-					
-					<div>200
-					</div>
-					
-					<div>Followers
-					</div>
-					
-					<div>300
-					</div>
-					
-					<div>The real Tweet says that blah blah blah...
-					</div>
-					
-				</div>
-			</div><!-- /.col-lg-6 -->
+				</div>			
+			</div>
 			
-
-			 
-		</div><!-- /.row -->
+			
+			<div class="col-md-4 col-lg-4">
+				<div id="comments">
+				</div>
+			</div>
+		</div>
+	
+	
 	</div>
-	  
 	
 	<!-- Bootstrap core JavaScript
 	================================================== -->
