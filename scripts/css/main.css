@@ -2,27 +2,23 @@ body {
   padding-top: 60px;
 }
 
-#user_query {
-	width: 50%;
-}
-
-
 
 .tweet {
 	border-bottom: 1px solid #e1e8ed;
 	cursor: pointer;
 	padding-top: 10px;
 	padding-bottom: 5px;
-	
+}
+
+.tweet a {
+	padding-left: 12px;
+}
+
+.tweet p {
+	padding-left: 60px;
 }
 
 .profile_photo {
 	float:left;
 }
 
-/*
-.verticalLine {
-    border-left:  1px solid #e1e8ed;
-    border-right:  1px solid #e1e8ed;
-}
-*/

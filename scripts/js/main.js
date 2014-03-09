@@ -36,7 +36,7 @@ function search_button_click_action () {
 		create_progress_bar();
 		cleanup();
 		search_time = new Date(); // get current time, format: Sun Mar 09 2014 22:54:47 GMT+0800 (China Standard Time)
-		$('#comments').text(search_time);
+//		$('#comments').text(search_time); // used for debug
 		search_past_tweets_pg1(); // get past tweets
 		stream_new_tweets(query_string); // get twitter stream (new tweets)
 		progress_bar_increment_by(10);
