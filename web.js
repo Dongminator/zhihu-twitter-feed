@@ -45,11 +45,14 @@ app.get('/', function(request, response) {
 //	});
 //});
 
-
+/*
+ * https://dev.twitter.com/docs/auth/application-only-auth 
+ * Step 2: obtain a bearer token
+ */
 app.get('/twitter_login2', function(request, response){
 	console.log("=login Step 2: Obtain a bearer token=");
 	var headers = { 
-		    'Authorization': 'Basic cEFnOWRWQU9Bbnc3Zm01WFlBZDRCUTpMaUV5Y3VzZE5lNkZodkUyRWdXZU10V1VKcGtvNU5BNWI4M09YRmNyekY0',
+		    'Authorization': 'Basic ' + credentials.base64,
 		    'Content-Type' : 'application/x-www-form-urlencoded;charset=UTF-8' 
 	};
 	var options = {
@@ -61,7 +64,6 @@ app.get('/twitter_login2', function(request, response){
 	};
 	
 	var req = https.request(options, function(res) {
-		console.log('STATUS: ' + res.statusCode);
 		res.on('data', function (chunk) {
 			response.send(chunk);
 		});
@@ -77,7 +79,8 @@ app.get('/twitter_login2', function(request, response){
 app.get('/twitter_login3', function(request, response){
 	console.log("=login Step 3: Authenticate API requests with the bearer token=");
 	var bearer_token = request.param('bearer_token');
-	console.log(bearer_token);
+	var query_string = request.param('q');
+	
 	// !! Do not forget to add "Bearer " before bearer_token!!!
 	var headers = { 
 		    'Authorization': "Bearer " + bearer_token,
@@ -85,25 +88,35 @@ app.get('/twitter_login3', function(request, response){
 	
 	// https://stream.twitter.com/1.1/statuses/filter.json
 	var options = {
-//			  hostname: 'api.twitter.com',
-//			  path: "/1.1/search/tweets.json?q=manchester",
-//			  method: 'GET',
-			  
-			hostname: 'stream.twitter.com',
-			path: '/1.1/statuses/filter.json',
-			method: 'POST',
-			  
-			  headers: headers
+			hostname: 'api.twitter.com',
+			path: '/1.1/search/tweets.json' + query_string, // query_string already has "?q="
+			method: 'GET',
+			headers: headers
 	};
-	
-	var req = https.request(options, function(res) {
-		console.log('STATUS: ' + res.statusCode);
-		res.on('data', function (chunk) {
-			response.send(chunk);
+	var body = "";
+	var req = https.request(options, function(res) { // res is IncomingMessage help: http://nodejs.org/api/http.html#http_http_incomingmessage
+		console.log('STATUSsss: ' + res.statusCode);
+		res.setEncoding("utf8");
+		res.on('data', function (chunk) {// this happens multiple times! So need to use 'body'
+			body += chunk;
 		});
+		
+		var data="";
+		res.on('end', function () { // when we have full 'body', convert to JSON and send back to client.
+			try {
+				data = JSON.parse(body);
+		    } catch (er) {
+		    	// uh oh!  bad json!
+		    	console.log("json wrong!!");
+		    	response.statusCode = 400;
+		    	return response.end('error: ' + er.message);
+		    }
+
+		    // write back response json
+		    response.send(data);
+		    response.end();
+		  });
 	});
-	
-	req.write('track=twitter');
 	req.end();
 });
 

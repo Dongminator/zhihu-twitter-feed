@@ -2,7 +2,9 @@ var api_key = "2440156431";
 var redirect_url = "http://weibo-feed.herokuapp.com/auth";
 var returned_data;
 var query_default_string = "zhihu";
+var bearer_token;
 
+var next_query_params; // query parameters for the next result page when loading past tweets from multiple pages.
 var tweet_ids = new Array();
 
 var search_time;
@@ -28,44 +30,42 @@ $('#search_button').on('click', function (e) {
 	}
 });
 
-$('#twitter_login_button').on('click', function (e) {
+$('#search_button2').on('click', function (e) {
 	console.log("twitter login clicked");
-	query();
-    //your awesome code here
+//	query();
 	
-//	//https://api.weibo.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REGISTERED_REDIRECT_URI
-//	//https://api.weibo.com/oauth2/authorize?client_id=2440156431&redirect_uri=http://weibo-feed.herokuapp.com/auth&response_type=code
-//	// return this: /auth?code=5c3b0ae0fea360c901fd9956a0507fa7 => access token
-//	$.get(
-//			"/twitter_login2", 
-////			{ client_id : api_key, response_type : "code", redirect_uri : redirect_url }, 
-//			function( data ) {
-//				returned_data = data;
-//				console.log(data);
-////				window.open();
-//				var obj = JSON.parse(data);
-//				returned_data = obj;
-//
+	//https://api.weibo.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REGISTERED_REDIRECT_URI
+	//https://api.weibo.com/oauth2/authorize?client_id=2440156431&redirect_uri=http://weibo-feed.herokuapp.com/auth&response_type=code
+	// return this: /auth?code=5c3b0ae0fea360c901fd9956a0507fa7 => access token
+	$.get(
+			"/twitter_login2", 
+//			{ client_id : api_key, response_type : "code", redirect_uri : redirect_url }, 
+			function( data ) {
+				returned_data = data;
+				console.log(data);
+//				window.open();
+				var obj = JSON.parse(data);
+				returned_data = obj;
+
 //				query(data);
-////				var bearer_token = obj.access_token;
-////				console.log(bearer_token);
-////				$.get(
-////						"/twitter_login3",
-////						{ bearer_token : bearer_token },
-////						function (data) {
-////							console.log(data);
-////						}
-////				);
-//			}
-//	); // if use json, will have "No 'Access-Control-Allow-Origin' header is present on the requested resource." problem.
-//	console.log("processed");
+				bearer_token = obj.access_token;
+				console.log(bearer_token);// bearer token/access token obtained!
+				
+				var query_string = $('#query').val();// get query string from user input
+				
+				search_query("?q=" + query_string);
+			}
+	); // if use json, will have "No 'Access-Control-Allow-Origin' header is present on the requested resource." problem.
+	console.log("processed");
 	
 //	$.get( "search" );
 
 });
-// http://api.weibo.com/2/statuses/public_timeline.json?source=2440156431
 
-// 127.0.0.1:3000/search?q=abc
+$('#load_more_past_tweets').on('click', function (e) {
+	console.log("loading more tweets...");
+	search_query(next_query_params);
+});
 
 function query (query_string) {
 	// @TODO use Loading... before tweets are returned.
@@ -86,6 +86,17 @@ function query (query_string) {
 	establish_connection();
 }
 
+function search_query (query_string) {
+	$.get(
+			"/twitter_login3",
+			{ bearer_token : bearer_token, q : query_string},
+			function (data) {
+				returned_data = data;
+				interpretPassedData (data);
+			}
+	);
+}
+
 
 function establish_connection () {
 	console.log("==establishing connection...==");
@@ -101,11 +112,11 @@ function establish_connection () {
 }
 
 
-function interpretData (tweet_obj) {
+function interpretData (tweet_obj) {// 1 tweet per tweet_obj
 	var tweet = tweet_obj.text;
 	var tweet_id = tweet_obj.id;
 	
-	if (tweet_ids.indexOf(tweet_id)==-1) {
+	if (tweet_ids.indexOf(tweet_id)==-1) { // tweet ID is not in the tweet_id array => this tweet has not been processed before. REASON: Stream API return duplicated data!
 
 		var created_At = tweet_obj.created_at;
 		
@@ -121,8 +132,6 @@ function interpretData (tweet_obj) {
 		console.log(user_profile_image_url);
 		console.log(tweet);
 		console.log(user_name + " " + user_screen_name);
-		
-		
 		
 		tweet_ids.push(tweet_id);
 		
@@ -158,14 +167,8 @@ function displayData (id, imgUrl, name, screenname, text, time) {
 	
 	var p = $('<p></p>').text(text).appendTo(tweet_div);
 	
-	
 	var insertAt = determineAppendIndex (id);// insert new tweet before indexAt
 	console.log (insertAt);
-	
-	
-//	var isNewTweet = determineNewTweet (time);
-	
-//	$('#tweets').append(tweet_div);
 	
 	tweet_div.insertBefore( $('#tweets').children().eq(insertAt) );
 }
@@ -179,3 +182,29 @@ function determineAppendIndex (id) {
 		}
 	}
 }
+
+/*
+ * new tweets are fetched from Stream API
+ * old tweets are fetched from Search API
+ * therefore refresh_url will not be used. (refresh_url is implemented because data may change since last query)
+ */
+function interpretPassedData (data) {
+	var statuses = data.statuses;
+	var noOfStatuses = statuses.length;
+	var search_metadata = data.search_metadata;
+	
+	if (noOfStatuses==15) {// there are more pages to load. (on condition that 15 is the number of tweets returned from each query.)
+		next_query_params = search_metadata.next_results;
+		// @TODO: display "Load More Past tweets" button
+	}
+	
+	// Paging: https://dev.twitter.com/docs/working-with-timelines
+	// refresh_url: because data may change since last query
+	// next_result
+	// use max_id: ((lowest ID of current request)-1) passed as max_id of the next request. (use -1 to avoid redundent tweet)
+	for (var i = 0; i < noOfStatuses; i++) {
+		var tweet_obj = statuses[i];
+		interpretData (tweet_obj);
+	}
+}
+
