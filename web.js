@@ -60,7 +60,6 @@ app.get('/twitter_login2', function(request, response){
 			  path: "/oauth2/token",
 			  method: 'POST',
 			  headers: headers
-			  
 	};
 	
 	var req = https.request(options, function(res) {

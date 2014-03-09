@@ -9,80 +9,67 @@ var tweet_ids = new Array();
 
 var search_time;
 
-$(document).ready(function(){
-	
+var socket;
+
+$(document).ready(function() {
+	$('.navbar-form').submit(function(event){
+		event.preventDefault();
+		search_button_click_action();
+	});
 });
 
+/*
+ * Search button listener.
+ * When clicked, display 15 past tweets.
+ * If there is new tweets, display "New tweet" button.
+ */
 $('#search_button').on('click', function (e) {
-	search_time = new Date();
-	console.log(search_time);
-	
-	$('#comments').text(search_time);
-	
+	search_button_click_action();
+});
+
+/*
+ * executed when button is clicked or Enter is pressed
+ */
+function search_button_click_action () {
 	var query_string = $('#query').val();
-	
-	if (query_string) {
-		console.log(query_string);
-		query(query_string);
+	if (query_string) { // validate query string
+		cleanup();
+		search_time = new Date(); // get current time, format: Sun Mar 09 2014 22:54:47 GMT+0800 (China Standard Time)
+		search_past_tweets_pg1(); // get past tweets
+		stream_new_tweets(query_string); // get twitter stream (new tweets)
 	} else {
-		// @TODO use twitter alert box
+		// TODO use twitter alert box
 		alert ("Please enter the topic you want to search.");
 	}
-});
+}
 
-$('#search_button2').on('click', function (e) {
-	console.log("twitter login clicked");
-//	query();
-	
-	//https://api.weibo.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REGISTERED_REDIRECT_URI
-	//https://api.weibo.com/oauth2/authorize?client_id=2440156431&redirect_uri=http://weibo-feed.herokuapp.com/auth&response_type=code
-	// return this: /auth?code=5c3b0ae0fea360c901fd9956a0507fa7 => access token
+
+/*
+ * Search for the specific term for the first time using Twitter Search API. 
+ * Need to obtain bearer token in this step. 
+ * NEED TO FIGURE OUT: will bearer token expire?
+ */
+function search_past_tweets_pg1 () {
 	$.get(
 			"/twitter_login2", 
-//			{ client_id : api_key, response_type : "code", redirect_uri : redirect_url }, 
 			function( data ) {
-				returned_data = data;
-				console.log(data);
-//				window.open();
 				var obj = JSON.parse(data);
-				returned_data = obj;
-
-//				query(data);
 				bearer_token = obj.access_token;
-				console.log(bearer_token);// bearer token/access token obtained!
 				
 				var query_string = $('#query').val();// get query string from user input
-				
 				search_query("?q=" + query_string);
 			}
-	); // if use json, will have "No 'Access-Control-Allow-Origin' header is present on the requested resource." problem.
-	console.log("processed");
-	
-//	$.get( "search" );
+	);
+}
 
-});
 
-$('#load_more_past_tweets').on('click', function (e) {
-	console.log("loading more tweets...");
-	search_query(next_query_params);
-});
-
-function query (query_string) {
-	// @TODO use Loading... before tweets are returned.
+function stream_new_tweets (query_string) {
+	// TODO use Loading... before tweets are returned.
 	if (!query_string) {
 		console.log('query_string null. set to default string.');
 		query_string = query_default_string; // this will never happen. 
 	}
-	$.get(
-			"/search",
-			{ query_string : query_string },
-			function (data) {
-				establish_connection();
-//				var obj = JSON.parse(data);
-//				returned_data = obj;
-//				console.log(data);
-			}
-	);
+	$.get( "/search", { query_string : query_string } );
 	establish_connection();
 }
 
@@ -91,7 +78,6 @@ function search_query (query_string) {
 			"/twitter_login3",
 			{ bearer_token : bearer_token, q : query_string},
 			function (data) {
-				returned_data = data;
 				interpretPassedData (data);
 			}
 	);
@@ -101,7 +87,7 @@ function search_query (query_string) {
 function establish_connection () {
 	console.log("==establishing connection...==");
 	$(function() {
-	    var socket = io.connect(window.location.hostname);
+	    socket = io.connect(window.location.hostname);
 	    console.log(window.location.hostname);
 	    socket.on('data', function(data) {
 	    	// tweets coming back here. 
@@ -167,10 +153,18 @@ function displayData (id, imgUrl, name, screenname, text, time) {
 	
 	var p = $('<p></p>').text(text).appendTo(tweet_div);
 	
-	var insertAt = determineAppendIndex (id);// insert new tweet before indexAt
-	console.log (insertAt);
+	var insertAt = determineAppendIndex (id);// insert new tweet before indexAt. THIS IS ALWAYS UNDEFINED because currently unable to compare tweets IDs.
+	if (insertAt) {
+		tweet_div.insertBefore( $('#tweets').children().eq(insertAt) );
+	} else { // if insertAt is undefined, it means there is nothing in #tweets div
+		if ($('#load_more_past_tweets')) {
+			tweet_div.insertBefore( $('#load_more_past_tweets') );
+		} else {
+			$("#tweets").append(tweet_div);
+		}
+		
+	}
 	
-	tweet_div.insertBefore( $('#tweets').children().eq(insertAt) );
 }
 
 function determineAppendIndex (id) {
@@ -195,7 +189,19 @@ function interpretPassedData (data) {
 	
 	if (noOfStatuses==15) {// there are more pages to load. (on condition that 15 is the number of tweets returned from each query.)
 		next_query_params = search_metadata.next_results;
-		// @TODO: display "Load More Past tweets" button
+		// TODO: display "Load More Past tweets" button
+		
+		var loadMoreBtn = document.getElementById('load_more_past_tweets');
+		if (!loadMoreBtn) {
+			appendLoadMoreButton();
+		}
+		
+	} else {
+		var loadMoreBtn = document.getElementById('load_more_past_tweets');
+		if (loadMoreBtn) {
+			loadMoreBtn.parentNode.removeChild(loadMoreBtn);
+			// TODO: append "No more tweet to load" text at the bottom of the page
+		}
 	}
 	
 	// Paging: https://dev.twitter.com/docs/working-with-timelines
@@ -208,3 +214,24 @@ function interpretPassedData (data) {
 	}
 }
 
+
+function appendLoadMoreButton() {
+	var loadMoreBtn = $('<button></button>').attr('type','button').attr('id','load_more_past_tweets').addClass('btn btn-default').text('Load more tweets');
+	$('#tweets').append(loadMoreBtn);
+	$('#load_more_past_tweets').on('click', function (e) {
+		console.log("loading more tweets...");
+		search_query(next_query_params);
+	});
+}
+
+/*
+ * If new search term is entered, this will be run.
+ * 1. clear all contents in #tweets div
+ * 2. clear tweet_ids array
+ * 3. reconnect with Stream API
+ * 4. disconnect socket
+ */
+function cleanup () {
+	$("#tweets").empty();
+	tweet_ids = new Array();
+}
