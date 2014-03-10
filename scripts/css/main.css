@@ -5,16 +5,15 @@ body {
 
 .tweet {
 	border-bottom: 1px solid #e1e8ed;
-	cursor: pointer;
 	padding-top: 10px;
 	padding-bottom: 5px;
 }
 
-.tweet a {
+.name {
 	padding-left: 12px;
 }
 
-.tweet p {
+.tweet p, .tweetImg {
 	padding-left: 60px;
 }
 
@@ -22,3 +21,16 @@ body {
 	float:left;
 }
 
+
+.hashtag {
+	color: #428bca;
+	cursor: pointer;
+}
+
+.hashtag:hover {
+	text-decoration: underline;
+}
+
+.tweet:hover {
+	background-color: #f5f8fa;
+}

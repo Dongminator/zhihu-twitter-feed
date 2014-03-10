@@ -3,7 +3,7 @@
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=UTF8">
 	
-    <title>Weibo News Feed</title>
+    <title>Twitter News Feed</title>
     
     
     <link href="./scripts/Bootstrap/css/bootstrap.css" rel="stylesheet">
@@ -19,11 +19,11 @@
 			<div class="navbar-header">
 				<span class="navbar-brand">实时新闻墙</span>
 			</div>
-			<div class="collapse navbar-collapse">
+			<div><!-- DO NOT COLLAPSE -->
 				<div class="col-sm-6 col-md-6">
 					<form class="navbar-form" role="search">
 						<div class="input-group">
-							<input type="text" class="form-control" placeholder="Search for..." name="q" id="query">
+							<input type="text" class="form-control" placeholder="Search for..." name="q" id="query" autocomplete="off">
 							<div class="input-group-btn">
 								<button class="btn btn-default" type="button" id="search_button"><i class="glyphicon glyphicon-search"></i></button>
 							</div>
@@ -38,7 +38,7 @@
 	
 	<div class="container" id="content">
 		<div class="row"><!-- include tweet div and comment div -->
-			<div class="col-md-8 col-lg-8">
+			<div class="col-md-10 col-lg-10">
 				<!-- progress bar here -->
 				<div id="tweets">
 					<!-- template -->
@@ -58,8 +58,8 @@
 				</div>			
 			</div>
 			
-			
-			<div class="col-md-4 col-lg-4">
+			<!-- Comments Div is not currently being used. -->
+			<div class="col-md-2 col-lg-2">
 				<div id="comments">
 				</div>
 			</div>

@@ -19,17 +19,6 @@ var t = new twitter({
     access_token_secret: credentials.access_token_secret
 });
 
-//t.stream(
-//    'statuses/filter',
-//    { track: ['awesome', 'cool', 'rad', 'gnarly', 'groovy'] },
-//    function(stream) {
-//        stream.on('data', function(tweet) {
-//            console.log(tweet.text);
-//        });
-//    }
-//);
-
-
 app.use(express.bodyParser());
 
 app.use('/scripts', express.static('scripts'));
@@ -39,18 +28,11 @@ app.get('/', function(request, response) {
 	response.sendfile(__dirname+'/index.html');
 });
 
-//app.post('/search', function(request, response) {
-//	t.search(request.body['search'], {},function(error, data){
-//		response.send(data);
-//	});
-//});
-
 /*
  * https://dev.twitter.com/docs/auth/application-only-auth 
  * Step 2: obtain a bearer token
  */
 app.get('/twitter_login2', function(request, response){
-	console.log("=login Step 2: Obtain a bearer token=");
 	var headers = { 
 		    'Authorization': 'Basic ' + credentials.base64,
 		    'Content-Type' : 'application/x-www-form-urlencoded;charset=UTF-8' 
@@ -73,10 +55,11 @@ app.get('/twitter_login2', function(request, response){
 });
 
 /*
+ * Step 3: Authenticate API requests with the bearer token
  * twitter_login3 is the actual query. need to rename it to query or something else.
+ * Search API: https://stream.twitter.com/1.1/statuses/filter.json
  */
 app.get('/twitter_login3', function(request, response){
-	console.log("=login Step 3: Authenticate API requests with the bearer token=");
 	var bearer_token = request.param('bearer_token');
 	var query_string = request.param('q');
 	
@@ -85,7 +68,6 @@ app.get('/twitter_login3', function(request, response){
 		    'Authorization': "Bearer " + bearer_token,
 	};
 	
-	// https://stream.twitter.com/1.1/statuses/filter.json
 	var options = {
 			hostname: 'api.twitter.com',
 			path: '/1.1/search/tweets.json' + query_string, // query_string already has "?q="
@@ -94,9 +76,9 @@ app.get('/twitter_login3', function(request, response){
 	};
 	var body = "";
 	var req = https.request(options, function(res) { // res is IncomingMessage help: http://nodejs.org/api/http.html#http_http_incomingmessage
-		console.log('STATUSsss: ' + res.statusCode);
+		// res.statusCode
 		res.setEncoding("utf8");
-		res.on('data', function (chunk) {// this happens multiple times! So need to use 'body'
+		res.on('data', function (chunk) {// this happens multiple times! So need to use 'body' to collect all data
 			body += chunk;
 		});
 		
@@ -105,8 +87,7 @@ app.get('/twitter_login3', function(request, response){
 			try {
 				data = JSON.parse(body);
 		    } catch (er) {
-		    	// uh oh!  bad json!
-		    	console.log("json wrong!!");
+		    	// something wrong with JSON
 		    	response.statusCode = 400;
 		    	return response.end('error: ' + er.message);
 		    }
@@ -122,11 +103,9 @@ app.get('/twitter_login3', function(request, response){
 // user twitter stream api.
 app.get('/search', function(request, response){
 	var query_string = request.param('query_string');
-	console.log("query_string = " + query_string);
 	t.stream('statuses/filter', { track: query_string }, function(stream) {
 		stream.on('data', function(tweet) {
 			if (tweet.text !== undefined) {
-				console.log("====" + tweet.text);
 				response.send(tweet.text);
 				io.sockets.emit('data', tweet);
 			}
